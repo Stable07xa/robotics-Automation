@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Robotics & Automation · 16 บทเรียน (ปรับปรุงรูป)</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg: #090d14; --surface: #111a26; --surface2: #1a2434; --surface3: #25314a;
+            --accent: #00e5ff; --accent2: #00bcd4; --accent-glow: #00e5ff44;
+            --gold: #ffb74d; --text: #d5dce6; --text2: #8e9aaa; --text-head: #eef3f8;
+            --border: #2a3548; --radius: 14px; --radius-sm: 8px;
+            --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --font: 'Sarabun', 'Kanit', 'Noto Sans Thai', sans-serif;
+            --mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+            --sidebar-w: 280px;
+        }
+        html { scroll-behavior: smooth; scroll-padding-top: 72px; }
+        body {
+            font-family: var(--font); background: var(--bg); color: var(--text);
+            line-height: 1.9; min-height: 100vh;
+            background-image: radial-gradient(ellipse at 20% 10%, #0d21371a 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 90%, #002b361a 0%, transparent 60%);
+        }
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: var(--bg); }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #3a4a60; }
+
+        #loader {
+            position: fixed; inset: 0; z-index: 99999; background: #090d14;
+            display: flex; align-items: center; justify-content: center;
+            flex-direction: column; transition: opacity 0.5s, visibility 0.5s;
+        }
+        #loader.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+        .loader-ring {
+            width: 56px; height: 56px; border: 4px solid var(--border);
+            border-top-color: var(--accent); border-radius: 50%;
+            animation: spin 0.8s linear infinite; box-shadow: 0 0 30px var(--accent-glow);
+        }
+        .loader-text {
+            margin-top: 16px; font-family: var(--mono); color: var(--accent);
+            letter-spacing: 3px; font-size: 0.8rem; animation: pulse 1.5s ease-in-out infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes pulse { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
+
+        #topbar {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 1000; height: 58px;
+            background: #090d14ec; backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--border); display: flex; align-items: center;
+            padding: 0 20px; gap: 14px; transition: var(--transition);
+        }
+        #topbar.scrolled { box-shadow: 0 4px 30px #00000077; }
+        #hamburger { display: none; background: none; border: none; cursor: pointer; padding: 6px; z-index: 1100; flex-shrink: 0; }
+        #hamburger span { display: block; width: 26px; height: 2.5px; background: var(--text-head); margin: 5px 0; border-radius: 2px; transition: var(--transition); }
+        #hamburger.open span:nth-child(1) { transform: rotate(45deg) translate(6px, 6px); }
+        #hamburger.open span:nth-child(2) { opacity: 0; }
+        #hamburger.open span:nth-child(3) { transform: rotate(-45deg) translate(6px, -6px); }
+        #topbar .logo { font-family: var(--mono); font-weight: 700; font-size: 1.1rem; color: var(--accent); letter-spacing: 0.5px; text-shadow: 0 0 20px var(--accent-glow); }
+        #topbar .logo span { color: var(--gold); text-shadow: 0 0 15px #ffb74d55; }
+        #topbar .logo small { font-size: 0.65rem; color: var(--text2); margin-left: 8px; letter-spacing: 1px; font-weight: 400; }
+
+        #sidebar {
+            position: fixed; top: 58px; left: 0; bottom: 0; width: var(--sidebar-w);
+            background: #0a101af5; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            border-right: 1px solid var(--border); overflow-y: auto; z-index: 999;
+            transition: transform var(--transition); padding: 6px 0 80px 0;
+        }
+        #sidebar nav a { display: flex; align-items: center; gap: 10px; padding: 9px 18px; color: var(--text2); text-decoration: none; font-size: 0.85rem; transition: var(--transition); border-left: 3px solid transparent; letter-spacing: 0.2px; }
+        #sidebar nav a:hover, #sidebar nav a.active { color: var(--accent); background: #00e5ff08; border-left-color: var(--accent); text-shadow: 0 0 8px var(--accent-glow); }
+        #sidebar nav a .ch-num { font-family: var(--mono); font-size: 0.65rem; color: var(--accent2); min-width: 26px; text-align: center; background: #00e5ff12; border-radius: 4px; padding: 1px 5px; flex-shrink: 0; }
+        #sidebar-overlay { display: none; position: fixed; inset: 0; z-index: 998; background: #00000099; }
+        #sidebar-overlay.show { display: block; }
+
+        #main { margin-left: var(--sidebar-w); padding: 76px 30px 50px 30px; display: flex; justify-content: center; }
+        #main .container { width: 100%; max-width: 1160px; }
+
+        .hero { text-align: center; padding: 20px 20px 30px; }
+        .hero h1 { font-size: clamp(2rem, 4.2vw, 3rem); color: var(--text-head); font-weight: 800; letter-spacing: 0.5px; line-height: 1.2; text-shadow: 0 0 60px #00e5ff33; }
+        .hero h1 .hl { color: var(--accent); }
+        .hero .sub { color: var(--text2); font-size: 1.05rem; margin-top: 6px; letter-spacing: 0.5px; }
+        .hero .line { width: 80px; height: 3px; background: var(--accent); margin: 14px auto 0; border-radius: 2px; box-shadow: 0 0 20px var(--accent-glow); }
+
+        .ch-section { margin-bottom: 48px; scroll-margin-top: 72px; }
+        .ch-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; transition: var(--transition); box-shadow: 0 4px 28px #00000044; }
+        .ch-card:hover { border-color: #00e5ff55; box-shadow: 0 8px 48px #00e5ff0f, 0 0 0 1px #00e5ff18 inset; transform: translateY(-2px); }
+        .ch-card .ch-head { display: flex; align-items: center; gap: 14px; padding: 16px 24px; background: var(--surface2); border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+        .ch-card .ch-badge { font-family: var(--mono); background: var(--accent); color: #000; font-weight: 700; font-size: 0.75rem; padding: 4px 14px; border-radius: 20px; white-space: nowrap; letter-spacing: 0.8px; box-shadow: 0 0 20px var(--accent-glow); }
+        .ch-card .ch-title { font-size: 1.25rem; color: var(--text-head); font-weight: 700; flex: 1; min-width: 180px; }
+
+        .ch-card .ch-images { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; padding: 16px 24px 0 24px; background: #070b10; }
+        .ch-card .ch-images figure { margin: 0; border-radius: var(--radius-sm); overflow: hidden; background: #0b1118; border: 1px solid var(--border); transition: var(--transition); }
+        .ch-card .ch-images figure:hover { border-color: var(--accent2); }
+        .ch-card .ch-images figure img { width: 100%; height: 180px; object-fit: cover; display: block; transition: transform 0.5s ease; }
+        .ch-card .ch-images figure:hover img { transform: scale(1.03); }
+        .ch-card .ch-images figure figcaption { padding: 6px 12px 10px 12px; font-size: 0.7rem; color: var(--text2); background: #0b1118; text-align: center; letter-spacing: 0.3px; font-family: var(--mono); border-top: 1px solid var(--border); }
+
+        .ch-card .ch-body { padding: 22px 26px 26px 26px; }
+        .ch-card .ch-body h4 { color: var(--accent2); margin: 22px 0 8px; font-size: 1.05rem; letter-spacing: 0.5px; }
+        .ch-card .ch-body h4:first-child { margin-top: 0; }
+        .ch-card .ch-body p { margin: 6px 0 14px; font-size: 0.95rem; color: var(--text); text-align: justify; }
+        .ch-card .ch-body ul { list-style: none; padding-left: 0; margin: 8px 0 12px 0; }
+        .ch-card .ch-body ul li { padding: 4px 0 4px 26px; position: relative; color: var(--text); font-size: 0.92rem; text-align: justify; }
+        .ch-card .ch-body ul li::before { content: '▸'; position: absolute; left: 4px; color: var(--accent); font-size: 0.75rem; top: 6px; }
+        .ch-card .ch-body .highlight-box { background: #0d1624; border-left: 4px solid var(--accent2); padding: 14px 20px; border-radius: var(--radius-sm); margin: 16px 0; font-size: 0.92rem; color: var(--text2); }
+        .ch-card .ch-body .highlight-box strong { color: var(--gold); }
+        .ch-card .ch-source { margin-top: 20px; padding: 14px 20px; background: #0a111c; border-radius: var(--radius-sm); font-size: 0.78rem; color: var(--text2); border-left: 4px solid var(--accent2); font-family: var(--mono); word-break: break-word; line-height: 1.6; }
+        .ch-card .ch-source strong { color: var(--gold); letter-spacing: 0.3px; }
+
+        .footer { text-align: center; padding: 36px 20px 26px; color: var(--text2); font-size: 0.82rem; border-top: 1px solid var(--border); margin-top: 30px; }
+        .footer .ft-accent { color: var(--accent); font-style: italic; }
+        .footer .credit { margin-top: 14px; padding: 12px 18px; background: var(--surface2); border-radius: var(--radius-sm); display: inline-block; border: 1px solid var(--border); font-family: var(--mono); font-size: 0.75rem; color: var(--gold); letter-spacing: 0.5px; }
+        .footer .credit strong { color: var(--text-head); }
+
+        #btt { position: fixed; bottom: 28px; right: 28px; z-index: 900; width: 46px; height: 46px; border-radius: 50%; background: var(--accent); color: #000; border: none; cursor: pointer; font-size: 1.3rem; font-weight: 700; box-shadow: 0 4px 20px var(--accent-glow); transition: var(--transition); display: flex; align-items: center; justify-content: center; opacity: 0; transform: translateY(20px); pointer-events: none; }
+        #btt.show { opacity: 1; transform: translateY(0); pointer-events: auto; }
+        #btt:hover { box-shadow: 0 6px 34px #00e5ff88; transform: translateY(-3px) scale(1.04); }
+
+        /* ---- Modal ขยายรูป (ปุ่ม X มุมขวาบนของรูป) ---- */
+        #image-modal {
+            position: fixed; inset: 0; z-index: 999999;
+            background: rgba(0,0,0,0.92);
+            display: flex; justify-content: center; align-items: center;
+            opacity: 0; visibility: hidden;
+            transition: opacity 0.4s ease, visibility 0.4s ease;
+            backdrop-filter: blur(6px);
+        }
+        #image-modal.active {
+            opacity: 1; visibility: visible;
+        }
+        #modal-container {
+            position: relative;
+            display: inline-block;
+            max-width: 92%;
+            max-height: 92%;
+        }
+        #modal-container img {
+            display: block;
+            max-width: 100%;
+            max-height: 92vh;
+            object-fit: contain;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.8);
+            transform: scale(0.95);
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        #image-modal.active #modal-container img {
+            transform: scale(1);
+        }
+        #modal-close {
+            position: absolute;
+            top: 10px; right: 10px;
+            font-size: 2.4rem;
+            color: #fff;
+            background: rgba(0,0,0,0.6);
+            border: none;
+            cursor: pointer;
+            padding: 0 14px;
+            border-radius: 8px;
+            line-height: 1.4;
+            transition: background 0.2s;
+            z-index: 10;
+        }
+        #modal-close:hover {
+            background: rgba(255,255,255,0.25);
+        }
+
+        @media (max-width: 1024px) { #main { padding: 76px 20px 40px 20px; } .ch-card .ch-images { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); } .ch-card .ch-images figure img { height: 150px; } }
+        @media (max-width: 900px) { #hamburger { display: block; } #sidebar { transform: translateX(-100%); width: 270px; } #sidebar.open { transform: translateX(0); box-shadow: 8px 0 40px #00000077; } #main { margin-left: 0; padding: 70px 14px 30px 14px; } #sidebar-overlay.show { display: block; } .ch-card .ch-head { padding: 12px 16px; } .ch-card .ch-title { font-size: 1.05rem; } .ch-card .ch-body { padding: 14px 16px 18px 16px; } .ch-card .ch-images { padding: 12px 16px 0 16px; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); } .ch-card .ch-images figure img { height: 130px; } .hero h1 { font-size: 1.5rem; } }
+        @media (max-width: 480px) { #topbar .logo { font-size: 0.9rem; } #topbar .logo small { display: none; } .ch-card .ch-images { grid-template-columns: 1fr 1fr; gap: 8px; } .ch-card .ch-images figure img { height: 110px; } .ch-card .ch-body ul li { font-size: 0.85rem; padding-left: 20px; } .ch-card .ch-body p { font-size: 0.85rem; } #btt { bottom: 16px; right: 14px; width: 38px; height: 38px; font-size: 1rem; } }
+        @media (max-width: 380px) { .ch-card .ch-images { grid-template-columns: 1fr; } .ch-card .ch-images figure img { height: 140px; } }
+    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Sarabun:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+    <div id="loader"><div class="loader-ring"></div><div class="loader-text">LOADING ROBOTICS …</div></div>
+
+    <header id="topbar">
+        <button id="hamburger" aria-label="เมนู"><span></span><span></span><span></span></button>
+        <div class="logo">🤖 ROBOTICS<span>&</span>AUTO <small>16 บทเรียน</small></div>
+    </header>
+    <div id="sidebar-overlay"></div>
+    <aside id="sidebar">
+        <nav>
+            <a href="#ch1"><span class="ch-num">01</span> Introduction</a>
+            <a href="#ch2"><span class="ch-num">02</span> Anatomy &amp; Kinematics</a>
+            <a href="#ch3"><span class="ch-num">03</span> Sensors &amp; Actuators</a>
+            <a href="#ch4"><span class="ch-num">04</span> Programming &amp; Control</a>
+            <a href="#ch5"><span class="ch-num">05</span> Industrial Automation &amp; PLC</a>
+            <a href="#ch6"><span class="ch-num">06</span> Computer Vision</a>
+            <a href="#ch7"><span class="ch-num">07</span> AI in Robotics</a>
+            <a href="#ch8"><span class="ch-num">08</span> Autonomous Mobile Robots</a>
+            <a href="#ch9"><span class="ch-num">09</span> Collaborative Robots</a>
+            <a href="#ch10"><span class="ch-num">10</span> Manipulation &amp; Grasping</a>
+            <a href="#ch11"><span class="ch-num">11</span> Drones &amp; Aerial</a>
+            <a href="#ch12"><span class="ch-num">12</span> Industry 4.0</a>
+            <a href="#ch13"><span class="ch-num">13</span> Medical &amp; Service</a>
+            <a href="#ch14"><span class="ch-num">14</span> Simulation &amp; Digital Tools</a>
+            <a href="#ch15"><span class="ch-num">15</span> Ethics, Safety &amp; Future</a>
+            <a href="#ch16"><span class="ch-num">16</span> Case Studies</a>
+        </nav>
+    </aside>
+
+    <main id="main">
+        <div class="container">
+
+            <section class="hero">
+                <h1>📘 <span class="hl">Robotics</span> and Automation</h1>
+                <p class="sub">16 บทเรียนครบวงจร — ตั้งแต่พื้นฐานเชิงกล สู่ระบบอัจฉริยะและอุตสาหกรรม 4.0</p>
+                <div class="line"></div>
+            </section>
+
+            <!-- CH1 -->
+            <section class="ch-section" id="ch1">
+                <article class="ch-card">
+                    <div class="ch-head"><span class="ch-badge">บทที่ 1</span><h2 class="ch-title">Introduction to Robotics and Automation</h2></div>
+                    <div class="ch-images">
+                        <figure>
+                            <img src="https://mitsubishifa.co.th/files/news/img_140125_054441824670355.jpg" alt="Industrial robot arm" loading="lazy" />
+                            <figcaption>หุ่นยนต์อุตสาหกรรมในโรงงานผลิต</figcaption>
+                        </figure>
+                        <figure>
+                            <img src="https://lh3.googleusercontent.com/proxy/LFAbzYu5x0J0ukW0lwEFqcUQaKQYXqBJNwUCzt6MP35T9zfGx89hZRoObICRCPYI9hZTufZfW6SKsUhUfeiDnPuY1lZYYh1WsnsZeFmgeDlFe-5Ij_AwjjChieLcOzaJeppm_yL5" alt="Factory assembly line conveyor" loading="lazy" />
+                            <figcaption>สายพานลำเลียงอัตโนมัติยุคปฏิวัติอุตสาหกรรม</figcaption>
+                        </figure>
+                        <figure>
+                            <img src="https://mitsubishifa.co.th/files/news/img_041024_1029461902114419.jpg" alt="Modern automated manufacturing facility" loading="lazy" />
+                            <figcaption>ระบบอัตโนมัติในโรงงานสมัยใหม่</figcaption>
+                        </figure>
+                    </div>
+                    <div class="ch-body">
+                        <h4>📌 ความเป็นมาและนิยามทางวิชาการ</h4>
+                        <p>หุ่นยนต์ (Robot) มาจากคำว่า <strong>"Robota"</strong> ในภาษาเช็ก ซึ่งหมายถึง "แรงงานบังคับ" ถูกบัญญัติครั้งแรกโดย Karel Čapek ในบทละครเรื่อง R.U.R. (Rossum's Universal Robots) เมื่อปี 1920 อย่างไรก็ตาม แนวคิดของระบบอัตโนมัติ (Automation) เกิดขึ้นก่อนหน้านั้นมาก ตั้งแต่ยุคการปฏิวัติอุตสาหกรรมในศตวรรษที่ 18 ที่มีการใช้เครื่องจักรไอน้ำ และต่อมาในต้นศตวรรษที่ 20 Henry Ford ได้ปฏิวัติการผลิตด้วยสายพานลำเลียง (Assembly Line) ซึ่งเป็นรากฐานของระบบอัตโนมัติในโรงงานยุคแรก</p>
+                        <p>ในมุมมองของวิศวกรรมสมัยใหม่ <strong>Robotics</strong> ถูกนิยามว่าเป็นสหวิทยาการที่ครอบคลุมการออกแบบเชิงกล (Mechanical Design), ระบบควบคุม (Control Systems), อิเล็กทรอนิกส์กำลัง (Power Electronics) และวิทยาการคอมพิวเตอร์ (Computer Science) เพื่อสร้างเครื่องจักรที่สามารถรับรู้ (Sense), คิดวิเคราะห์ (Think) และกระทำการ (Act) ในสภาพแวดล้อมจริงได้ (Siciliano, 2009)</p>
+                        <h4>🔹 ประเภทของหุ่นยนต์</h4>
+                        <ul>
+                            <li><strong>Industrial Robots:</strong> ใช้ในโรงงานผลิต เช่น การเชื่อม (Welding), การประกอบ (Assembly), การพ่นสี (Painting) และการจัดการวัสดุ (Material Handling)</li>
+                            <li><strong>Service Robots:</strong> ปฏิบัติงานที่เป็นประโยชน์ต่อมนุษย์ ไม่ใช่ในภาคการผลิต เช่น หุ่นยนต์ดูดฝุ่น, หุ่นยนต์ส่งของในโรงพยาบาล</li>
+                            <li><strong>Collaborative Robots (Cobots):</strong> ออกแบบมาเพื่อทำงานเคียงข้างมนุษย์อย่างปลอดภัย โดยมีเซนเซอร์ตรวจจับแรงสัมผัสและจำกัดความเร็ว (ISO/TS 15066)</li>
+                            <li><strong>Autonomous Mobile Robots (AMR):</strong> หุ่นยนต์เคลื่อนที่อัตโนมัติที่นำทางด้วยตัวเองโดยใช้เซนเซอร์และ AI โดยไม่ต้องพึ่งพารางนำทาง (Thrun et al., 2005)</li>
+                        </ul>
+                        <div class="highlight-box"><strong>💡 ข้อสังเกตเชิงลึก:</strong> การแบ่งแยกหุ่นยนต์ในปัจจุบันกำลังเลือนหายไป เนื่องจาก AI และ IoT ทำให้หุ่นยนต์อุตสาหกรรมสามารถปรับตัวได้ และหุ่นยนต์บริการก็เริ่มมีความแข็งแกร่งพอสำหรับงานหนักในคลังสินค้า</div>
+                        <h4>🔹 วิวัฒนาการจาก Industry 1.0 สู่ 4.0</h4>
+                        <p>ยุค Industry 1.0 (เครื่องจักรไอน้ำ) → 2.0 (สายพานผลิตไฟฟ้า) → 3.0 (คอมพิวเตอร์และระบบอัตโนมัติ) → 4.0 (Cyber-Physical Systems, IoT, AI) หุ่นยนต์ได้เปลี่ยนจากเครื่องจักรกลไฮดรอลิกที่ถูกโปรแกรมด้วยกลไก (Hardwired) ในยุค 1960 มาเป็นระบบปัญญาประดิษฐ์ที่เรียนรู้ด้วยตนเองในปัจจุบัน (Schwab, 2016)</p>
+                        <div class="ch-source"><strong>📚 แหล่งที่มาอ้างอิง:</strong> Siciliano, B. et al. (2009). <em>Robotics: Modelling, Planning and Control</em>. Springer. · Schwab, K. (2016). <em>The Fourth Industrial Revolution</em>. WEF.</div>
+                    </div>
+                </article>
+            </section>
+
+            <!-- CH2 -->
+            <section class="ch-section" id="ch2">
+                <article class="ch-card">
+                    <div class="ch-head"><span class="ch-badge">บทที่ 2</span><h2 class="ch-title">Robot Anatomy and Kinematics</h2></div>
+                    <div class="ch-images">
+                        <figure>
+                            <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRH3tM_6BYfdg-hYbr-2n-QRMV9Rs3zx_ZSfA&s" alt="Robot arm mechanical links structure" loading="lazy" />
+                            <figcaption>โครงสร้าง Links และ End-Effector ของแขนกล</figcaption>
+                        </figure>
+                        <figure>
+                            <img src="https://miro.medium.com/v2/resize:fit:1400/1*iteULL3LdDNImZBkAR6Bxw.png" alt="Robot 6DOF articulated joints" loading="lazy" />
+                            <figcaption>ข้อต่อ Revolute Joint — 6 DOF</figcaption>
+                        </figure>
+                        <figure>
+                            <img src="https://i.ytimg.com/vi/f79suBeEObs/maxresdefault.jpg" alt="Kinematic chain DH parameters engineering" loading="lazy" />
+                            <figcaption>พารามิเตอร์ Denavit-Hartenberg (DH)</figcaption>
+                        </figure>
+                    </div>
+                    <div class="ch-body">
+                        <h4>📌 โครงสร้างพื้นฐานของหุ่นยนต์แขนกล</h4>
+                        <p>หุ่นยนต์แขนกล (Manipulator) ประกอบด้วย <strong>Links</strong> (ชิ้นส่วนแข็ง) เชื่อมต่อกันด้วย <strong>Joints</strong> (ข้อต่อ) ซึ่งให้ <strong>Degrees of Freedom (DOF)</strong> หุ่นยนต์อุตสาหกรรมส่วนใหญ่มี 6 DOF เพื่อให้สามารถวางตำแหน่ง (x, y, z) และทิศทาง (มุม Roll, Pitch, Yaw) ของปลายมือ (End-Effector) ได้ตามต้องการในปริภูมิ 3 มิติ</p>
+                        <p>ข้อต่อมี 2 ประเภทหลักคือ <strong>Revolute (R)</strong> ซึ่งหมุนรอบแกนเดียว และ <strong>Prismatic (P)</strong> ซึ่งเลื่อนแบบเส้นตรง การผสมผสานของข้อต่อเหล่านี้ (เช่น RRR, RRP) สร้างโครงสร้างที่หลากหลาย โดยหุ่นยนต์ที่พบมากที่สุดคือแบบ <strong>Articulated (RRR)</strong> ซึ่งเลียนแบบการทำงานของแขนมนุษย์ (Craig, 2005)</p>
+                        <h4>🔹 จลนศาสตร์ (Kinematics)</h4>
+                        <ul>
+                            <li><strong>Forward Kinematics (FK):</strong> คำนวณหาตำแหน่งและทิศทางของปลายมือเมื่อกำหนดมุมข้อต่อทุกข้อ โดยใช้เมทริกซ์ Homogeneous Transformation และพารามิเตอร์ Denavit-Hartenberg (DH)</li>
+                            <li><strong>Inverse Kinematics (IK):</strong> หาค่ามุมข้อต่อจากตำแหน่งและทิศทางของปลายมือที่ต้องการ ซึ่งอาจมีหลายคำตอบ (Multiple Solutions) หรือไม่มีคำตอบเลย (No Solution)</li>
+                            <li><strong>Jacobian Matrix:</strong> เมทริกซ์ที่เชื่อมโยงความเร็วเชิงมุมของข้อต่อกับความเร็วของปลายมือ มีบทบาทสำคัญในการควบคุมความเร็วและการตรวจจับ Singularity</li>
+                        </ul>
+                        <div class="highlight-box"><strong>💡 ตัวอย่าง:</strong> หุ่นยนต์ UR5e ของ Universal Robots ใช้พารามิเตอร์ DH ในการคำนวณ FK และใช้ฟังก์ชันเชิงตัวเลขสำหรับ IK เพื่อให้สามารถลากจับ (Drag-to-Teach) ได้อย่างลื่นไหล</div>
+                        <div class="ch-source"><strong>📚 แหล่งที่มาอ้างอิง:</strong> Craig, J.J. (2005). <em>Introduction to Robotics: Mechanics and Control</em>. Pearson. · Siciliano et al. (2009). Ch. 2-3.</div>
+                    </div>
+                </article>
+            </section>
+
+            <!-- CH3 -->
+            <section class="ch-section" id="ch3">
+                <article class="ch-card">
+                    <div class="ch-head"><span class="ch-badge">บทที่ 3</span><h2 class="ch-title">Sensors and Actuators</h2></div>
+                    <div class="ch-images">
+                        <figure>
+                            <img src="https://i0.wp.com/www.mitrearth.org/wp-content/uploads/2025/06/24-140-7-1024x731.jpg?resize=1024%2C731&ssl=1" alt="LIDAR laser sensor scanning" loading="lazy" />
+                            <figcaption>เซนเซอร์ LIDAR สร้าง Point Cloud 3 มิติ</figcaption>
+                        </figure>
+                        <figure>
+                            <img src="https://blog.seeedstudio.com/wp-content/uploads/2019/12/accelerometer-and-gyro.png" alt="IMU accelerometer gyroscope electronics" loading="lazy" />
+                            <figcaption>IMU — Accelerometer &amp; Gyroscope</figcaption>
+                        </figure>
+                        <figure>
+                            <img src="https://th.misumi-ec.com/th/linked/material/mech/BQQ1/PHOTO/221304034144_001.jpg" alt="Electric servo motor actuator" loading="lazy" />
+                            <figcaption>มอเตอร์ Servo แอคชูเอเตอร์ขับเคลื่อน</figcaption>
+                        </figure>
+                    </div>
+                    <div class="ch-body">
+                        <h4>📌 เซนเซอร์ (Sensors) — ระบบรับรู้สภาพแวดล้อม</h4>
+                        <p>เซนเซอร์เป็นอุปกรณ์ที่แปลงปริมาณทางกายภาพ (เช่น ความร้อน, แสง, แรงกด) ให้เป็นสัญญาณไฟฟ้า จำแนกได้เป็น 2 ประเภทหลัก: <strong>Proprioceptive</strong> (วัดสถานะภายใน เช่น Encoders, IMU) และ <strong>Exteroceptive</strong> (วัดสภาพแวดล้อมภายนอก เช่น กล้อง, LIDAR) (Fraden, 2016)</p>
+                        <ul>
+                            <li><strong>LIDAR (Light Detection and Ranging):</strong> ใช้เลเซอร์พัลซ์วัดระยะทาง สร้างแผนที่ 3 มิติความละเอียดสูง (Point Cloud) ใช้ในรถยนต์ไร้คนขับและ AMR</li>
+                            <li><strong>IMU (Inertial Measurement Unit):</strong> รวม Accelerometer และ Gyroscope ใช้วัดความเร่งและความเร็วเชิงมุม ช่วยในการนำทางและการทรงตัว</li>
+                            <li><strong>Force/Torque (F/T) Sensors:</strong> วัดแรงและแรงบิดที่ปลายมือ จำเป็นสำหรับงานประกอบที่ละเอียดอ่อน</li>
+                            <li><strong>Tactile Sensors:</strong> จำลองการรับรู้สัมผัสของผิวหนัง ใช้วัดแรงกดและการลื่นไถลของวัตถุ</li>
+                        </ul>
+                        <h4>🔹 แอคชูเอเตอร์ (Actuators) — ระบบขับเคลื่อน</h4>
+                        <ul>
+                            <li><strong>Electric Motors (Servo &amp; Stepper):</strong> ควบคุมได้แม่นยำ ใช้แบตเตอรี่ มีการตอบสนองที่รวดเร็ว เหมาะกับหุ่นยนต์ส่วนใหญ่</li>
+                            <li><strong>Hydraulic Actuators:</strong> ใช้แรงดันน้ำมัน ให้แรงบิดสูงมาก ใช้ในหุ่นยนต์ขนาดใหญ่ เช่น Boston Dynamics Atlas</li>
+                            <li><strong>Pneumatic Actuators:</strong> ใช้แรงดันอากาศ ต้นทุนต่ำ น้ำหนักเบา นิยมใช้ในระบบ Gripper และงานที่ต้องการความเร็วสูง</li>
+                        </ul>
+                        <div class="ch-source"><strong>📚 แหล่งที่มาอ้างอิง:</strong> Fraden, J. (2016). <em>Handbook of Modern Sensors</em>. Springer. · Niku, S.B. (2010). <em>Introduction to Robotics</em>. Wiley.</div>
+                    </div>
+                </article>
+            </section>
+
+            <!-- CH4 -->
+            <section class="ch-section" id="ch4">
+                <article class="ch-card">
+                    <div class="ch-head"><span class="ch-badge">บทที่ 4</span><h2 class="ch-title">Robot Programming and Control Systems</h2></div>
+                    <div class="ch-images">
+                        <figure>
+                            <img src="https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=600&q=80" alt="Python ROS programming terminal code" loading="lazy" />
+                            <figcaption>การเขียนโปรแกรม Python / ROS</figcaption>
+                        </figure>
+                        <figure>
+                            <img src="https://csys.pro/wp-content/uploads/2024/07/PID-block-simulink-22-1024x344.png" alt="MATLAB Simulink PID control system design" loading="lazy" />
+                            <figcaption>MATLAB / Simulink ออกแบบตัวควบคุม PID</figcaption>
+                        </figure>
+                        <figure>
+                            <img src="https://education.vex.com/stemlabs/sites/default/files/inline-images/Screenshot%202024-01-09%20at%2011.19.01%E2%80%AFAM_0.png" alt="Teach pendant robot programming" loading="lazy" />
+                            <figcaption>Teach Pendant สอนงานหุ่นยนต์</figcaption>
+                        </figure>
+                    </div>
+                    <div class="ch-body">
+                        <h4>📌 กระบวนทัศน์การเขียนโปรแกรม</h4>
+                        <p>การเขียนโปรแกรมหุ่นยนต์มีวิวัฒนาการจาก <strong>Teach Pendant</strong> (การจับเคลื่อนไหวแล้วบันทึก) สู่ <strong>Offline Programming</strong> (การจำลองบนคอมพิวเตอร์) และในปัจจุบันคือการเขียนโค้ดโดยใช้เฟรมเวิร์กแบบเปิดอย่าง <strong>ROS (Robot Operating System)</strong> ซึ่งเป็นระบบปฏิบัติการแบบกระจายที่ใช้กันอย่างแพร่หลาย (Quigley et al., 2015)</p>
+                        <ul>
+                            <li><strong>Python:</strong> ภาษาที่ได้รับความนิยมสูงสุดสำหรับการพัฒนาใน ROS เนื่องจากมีไลบรารีสำหรับ AI (TensorFlow, PyTorch) และการประมวลผลภาพ (OpenCV) มากมาย</li>
+                            <li><strong>C++:</strong> ใช้สำหรับระบบที่ต้องการประสิทธิภาพสูงและการควบคุมแบบ Real-time เช่น การสื่อสารกับฮาร์ดแวร์ระดับต่ำหรือการควบคุมแบบวนรอบ (Control Loops)</li>
+                            <li><strong>ROS 2:</strong> รองรับระบบ Distributed Computing และ Real-time มากขึ้น โดยใช้ DDS (Data Distribution Service) เป็นแกนหลักในการสื่อสารระหว่างโหนด</li>
+                        </ul>
+                        <h4>🔹 ระบบควบคุม (Control Systems)</h4>
+                        <p>หัวใจของการควบคุมหุ่นยนต์คือ <strong>PID Controller</strong> (Proportional-Integral-Derivative) ซึ่งคำนวณค่าความผิดพลาด (Error) ระหว่างค่าที่ต้องการ (Setpoint) กับค่าปัจจุบัน (Feedback) และปรับค่าเอาท์พุตเพื่อลดความผิดพลาดนั้น</p>
+                        <ul>
+                            <li><strong>Control Architectures:</strong> Cascade Control, Feedforward Control, Adaptive Control</li>
+                            <li><strong>Real-time Challenges:</strong> การหน่วงเวลา (Latency) และ Jitter มีผลต่อความเสถียรของระบบ ต้องใช้ระบบปฏิบัติการแบบ RTOS หรือ Xenomai</li>
+                        </ul>
+                        <div class="ch-source"><strong>📚 แหล่งที่มาอ้างอิง:</strong> Quigley, M. et al. (2015). <em>Programming Robots with ROS</em>. O'Reilly. · Corke, P. (2017). <em>Robotics, Vision and Control</em>. Springer.</div>
+                    </div>
+                </article>
+            </section>
+
+            <!-- CH5 -->
+            <section class="ch-section" id="ch5">
+                <article class="ch-card">
+                    <div class="ch-head"><span class="ch-badge">บทที่ 5</span><h2 class="ch-title">Industrial Automation and PLCs</h2></div>
+                    <div class="ch-images">
+                        <figure>
+                            <img src="https://image.made-in-china.com/202f0j00NLrfpwyWrBbl/Siemens-PLC-Automatic-Control-System-S7-1500-for-Chemical-Production-Line.webp" alt="Siemens S7-1500 PLC industrial controller" loading="lazy" />
+                            <figcaption>PLC Siemens S7-1500 ควบคุมกระบวนการ</figcaption>
+                        </figure>
+                        <figure>
+                            <img src="https://np-eng.co.th/wp-content/uploads/2025/04/engine-control-room-merchar-ship.webp" alt="Industrial control panel electrical wiring" loading="lazy" />
+                            <figcaption>แผงควบคุมวงจรไฟฟ้าอุตสาหกรรม</figcaption>
+                        </figure>
+                        <figure>
+                            <img src="https://ubidots.com/blog/content/images/2024/10/scada-what-is.jpg" alt="SCADA HMI monitoring dashboard" loading="lazy" />
+                            <figcaption>SCADA &amp; HMI ตรวจสอบสถานะแบบ Real-time</figcaption>
+                        </figure>
+                    </div>
+                    <div class="ch-body">
+                        <h4>📌 PLC (Programmable Logic Controller)</h4>
+                        <p>PLC เป็นคอมพิวเตอร์อุตสาหกรรมที่ได้รับการออกแบบมาให้ทนทานต่อฝุ่น ความร้อน และแรงสั่นสะเทือน ทำงานแบบวนรอบ (Scan Cycle) เพื่ออ่านค่าอินพุต, ประมวลผลตรรกะ และอัปเดตเอาต์พุตภายในเวลาไม่กี่มิลลิวินาที (Petruzella, 2017)</p>
+                        <ul>
+                            <li><strong>Ladder Logic (LD):</strong> ภาษาโปรแกรมที่คล้ายวงจรรีเลย์ อ่านง่ายสำหรับวิศวกรไฟฟ้า ใช้สัญลักษณ์ Contact และ Coil</li>
+                            <li><strong>Function Block Diagram (FBD):</strong> ใช้บล็อกฟังก์ชันสำหรับการประมวลผลเชิงตรรกะและคณิตศาสตร์ เหมาะกับงานควบคุมกระบวนการ (Process Control)</li>
+                            <li><strong>Structured Text (ST):</strong> ภาษาระดับสูงคล้าย Pascal ใช้สำหรับการคำนวณที่ซับซ้อนและการวนลูป</li>
+                            <li><strong>SCADA &amp; HMI:</strong> SCADA ทำหน้าที่เป็นระบบควบคุมและเก็บข้อมูลจากระยะไกล ส่วน HMI คือหน้าจอสัมผัสที่ให้ผู้ปฏิบัติงานสั่งการและตรวจสอบสถานะ</li>
+                        </ul>
+                        <h4>🔹 โปรโตคอลการสื่อสาร</h4>
+                        <ul>
+                            <li><strong>Profinet / EtherNet/IP:</strong> มาตรฐาน Ethernet สำหรับอุตสาหกรรม</li>
+                            <li><strong>EtherCAT:</strong> ความเร็วสูงมาก ใช้ในงาน Motion Control ที่ต้องการการซิงโครไนซ์แบบเรียลไทม์</li>
+                            <li><strong>Modbus TCP/RTU:</strong> โปรโตคอลแบบเปิดที่ใช้กันอย่างแพร่หลาย</li>
+                        </ul>
+                        <div class="ch-source"><strong>📚 แหล่งที่มาอ้างอิง:</strong> Petruzella, F.D. (2017). <em>Programmable Logic Controllers</em>. McGraw-Hill. · IEC 61131-3 Standard.</div>
+                    </div>
+                </article>
+            </section>
+
+            <!-- CH6 -->
+            <section class="ch-section" id="ch6">
+                <article class="ch-card">
+                    <div class="ch-head"><span class="ch-badge">บทที่ 6</span><h2 class="ch-title">Computer Vision for Robotics</h2></div>
+                    <div class="ch-images">
+                        <figure>
+                            <img src="https://i.ytimg.com/vi/lekdUXv82xQ/maxresdefault.jpg" alt="YOLO object detection real-time" loading="lazy" />
+                            <figcaption>YOLO Object Detection — ตรวจจับแบบ Real-time</figcaption>
+                        </figure>
+                        <figure>
+                            <img src="https://inwfile.com/s-o/gk0e3e.jpg" alt="Camera depth sensing RGB-D" loading="lazy" />
+                            <figcaption>กล้อง RGB-D สร้าง Depth Map &amp; Point Cloud</figcaption>
+                        </figure>
+                        <figure>
+                            <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR4I6AKzGA9o04j0lzYuVsyXzDHDLpKSYTm0g&s" alt="OpenCV image processing CNN pipeline" loading="lazy" />
+                            <figcaption>Image Processing Pipeline &amp; CNN</figcaption>
+                        </figure>
+                    </div>
+                    <div class="ch-body">
+                        <h4>📌 การมองเห็นด้วยคอมพิวเตอร์ (CV)</h4>
+                        <p>CV เป็นสาขาที่ทำให้หุ่นยนต์มี "ดวงตา" โดยใช้กล้องและอัลกอริทึมในการแยกแยะ, ตรวจจับ, และติดตามวัตถุ ไลบรารีที่ใช้มากที่สุดคือ <strong>OpenCV</strong> (Bradski &amp; Kaehler, 2008) ซึ่งรองรับทั้งการประมวลผลภาพ 2D และ 3D</p>
+                        <ul>
+                            <li><strong>Image Processing Pipeline:</strong> Pre-processing (Gaussian Blur, Histogram Equalization), Edge Detection (Canny), Feature Extraction (SIFT, SURF, ORB)</li>
+                            <li><strong>Deep Learning for Vision:</strong> CNN เช่น YOLO (You Only Look Once) และ SSD (Single Shot Detector) มีความเร็วสูงพอสำหรับ Real-time (Redmon et al., 2016)</li>
+                            <li><strong>3D Vision:</strong> กล้อง RGB-D เช่น Intel RealSense เพื่อสร้าง Depth Map สำหรับ Grasp Planning และ SLAM</li>
+                            <li><strong>Pose Estimation:</strong> การประมาณตำแหน่งและทิศทางของวัตถุในปริภูมิ 3 มิติ ซึ่งสำคัญสำหรับ Pick-and-Place</li>
+                        </ul>
+                        <div class="ch-source"><strong>📚 แหล่งที่มาอ้างอิง:</strong> Bradski, G., &amp; Kaehler, A. (2008). <em>Learning OpenCV</em>. O'Reilly. · Redmon, J. et al. (2016). "You Only Look Once". CVPR.</div>
+                    </div>
+                </article>
+            </section>
+
+            <!-- CH7 -->
+            <section class="ch-section" id="ch7">
+                <article class="ch-card">
+                    <div class="ch-head"><span class="ch-badge">บทที่ 7</span><h2 class="ch-title">Artificial Intelligence in Robotics</h2></div>
+                    <div class="ch-images">
+                        <figure>
+                            <img src="https://mindphp.com/images/knowledge/AI/Artificial-Neural-Networks.jpg" alt="Artificial neural network architecture" loading="lazy" />
+                            <figcaption>โครงข่ายประสาทเทียม Neural Network</figcaption>
+                        </figure>
+                        <figure>
+                            <img src="https://miro.medium.com/v2/resize:fit:1400/0*Q8mcPyNV2PIC2JJX" alt="AI deep learning machine learning concept" loading="lazy" />
+                            <figcaption>Deep Learning — CNN, RNN, Transformer</figcaption>
+                        </figure>
+                        <figure>
+                            <img src="https://1.bp.blogspot.com/-CUAUU0XgHZk/XpnZR0rV0rI/AAAAAAAAFuM/-F22rV2OV2sHhkNMB4DkMbfx0RHqA3x6QCLcBGAsYHQ/s1600/image2.png" alt="Reinforcement learning robot training reward" loading="lazy" />
+                            <figcaption>Reinforcement Learning — Reward &amp; Policy</figcaption>
+                        </figure>
+                    </div>
+                    <div class="ch-body">
+                        <h4>📌 ปัญญาประดิษฐ์ในหุ่นยนต์</h4>
+                        <p>AI ได้ยกระดับหุ่นยนต์จากระบบที่ถูกเขียนกฎตายตัว (Rule-based) ไปสู่ระบบที่สามารถเรียนรู้จากข้อมูลและประสบการณ์ (Data-driven) ครอบคลุมสาขาต่างๆ เช่น การวางแผน, การรับรู้, และการควบคุม (Goodfellow et al., 2016)</p>
+                        <ul>
+                            <li><strong>Machine Learning (ML):</strong> ใช้ข้อมูลสร้างโมเดลทางคณิตศาสตร์สำหรับ Classification และ Regression เช่น SVM หรือ Random Forest ในการจำแนกวัตถุ</li>
+                            <li><strong>Deep Learning (DL):</strong> ใช้ Neural Networks หลายชั้นเรียนรู้ Features ที่ซับซ้อน — CNN สำหรับภาพ, RNN/LSTM สำหรับลำดับข้อมูล, Transformers สำหรับการตัดสินใจ</li>
+                            <li><strong>Reinforcement Learning (RL):</strong> หุ่นยนต์เรียนรู้ผ่าน Trial and Error โดยรับ Reward เมื่อทำถูกต้อง DQN และ PPO เป็นอัลกอริทึมที่นิยม (Sutton &amp; Barto, 2018)</li>
+                            <li><strong>Imitation Learning:</strong> หุ่นยนต์เรียนรู้โดยเลียนแบบท่าทางมนุษย์ผ่าน Kinesthetic Teaching หรือการดูวิดีโอ</li>
+                        </ul>
+                        <div class="highlight-box"><strong>💡 ตัวอย่าง:</strong> OpenAI ใช้ RL สอนหุ่นยนต์จับวัตถุรูปร่างซับซ้อน โดยใช้การจำลองในซอฟต์แวร์แล้วถ่ายโอนสู่โลกจริง (Sim-to-Real Transfer)</div>
+                        <div class="ch-source"><strong>📚 แหล่งที่มาอ้างอิง:</strong> Goodfellow, I. et al. (2016). <em>Deep Learning</em>. MIT Press. · Sutton, R.S., &amp; Barto, A.G. (2018). <em>Reinforcement Learning</em>. MIT Press.</div>
+                    </div>
+                </article>
+            </section>
+
+            <!-- CH8 -->
+            <section class="ch-section" id="ch8">
+                <article class="ch-card">
+                    <div class="ch-head"><span class="ch-badge">บทที่ 8</span><h2 class="ch-title">Autonomous Mobile Robots (AMR)</h2></div>
+                    <div class="ch-images">
+                        <figure>
+                            <img src="https://www.automation.co.th/wp-content/uploads/2024/12/AMR-warehouse-logistics.jpg" alt="AMR warehouse autonomous mobile robot" loading="lazy" />
+                            <figcaption>AMR ขนส่งสินค้าอัตโนมัติในคลังสินค้า</figcaption>
+                        </figure>
+                        <figure>
+                            <img src="https://preview.redd.it/why-does-my-slam-toolbox-map-look-so-bad-v0-nfdeb5j128me1.png?width=1223&format=png&auto=webp&s=8440a116d54c6e2d512b11d00e5697181bbf80ee" alt="SLAM navigation map occupancy grid" loading="lazy" />
+                            <figcaption>SLAM — สร้างแผนที่และระบุตำแหน่งพร้อมกัน</figcaption>
+                        </figure>
+                        <figure>
+                            <img src="https://coecsl.ece.illinois.edu/se423/spring13/RickRekoskeAvoid/rrtimages/rough_path.jpg" alt="Path planning A* RRT algorithm robot" loading="lazy" />
+                            <figcaption>อัลกอริทึมวางแผนเส้นทาง A* &amp; RRT</figcaption>
+                        </figure>
+                    </div>
+                    <div class="ch-body">
+                        <h4>📌 หุ่นยนต์เคลื่อนที่อัตโนมัติ</h4>
+                        <p>AMR แตกต่างจาก AGV (Automated Guided Vehicle) ตรงที่ AMR ไม่ต้องพึ่งพาสายนำทาง (Magnetic tape, Wire) หรือ QR Code บนพื้น แต่ใช้เซนเซอร์และอัลกอริทึมในการนำทางและตัดสินใจด้วยตนเองในสภาพแวดล้อมแบบไดนามิก (Thrun et al., 2005)</p>
+                        <ul>
+                            <li><strong>Localization:</strong> ใช้ Particle Filters (Monte Carlo Localization) หรือ Extended Kalman Filter (EKF) รวมข้อมูลจาก Odometry, IMU, LIDAR และ GPS</li>
+                            <li><strong>SLAM (Simultaneous Localization and Mapping):</strong> สร้างแผนที่สภาพแวดล้อมที่ไม่รู้จักพร้อมกับระบุตำแหน่งตัวเอง มีทั้งแบบ Graph-SLAM และ Filtering-based</li>
+                            <li><strong>Path Planning:</strong> อัลกอริทึม A* และ D* Lite สำหรับแผนที่สถิต, RRT สำหรับพื้นที่ต่อเนื่องและหลีกเลี่ยงสิ่งกีดขวางแบบพลวัต</li>
+                        </ul>
+                        <div class="highlight-box"><strong>💡 ตัวอย่าง:</strong> Amazon Robotics ใช้ AMR มากกว่า 500,000 ตัวในการขนย้ายชั้นวางของ ช่วยลดเวลาหยิบสินค้าจากหลายชั่วโมงเหลือเพียงไม่กี่นาที</div>
+                        <div class="ch-source"><strong>📚 แหล่งที่มาอ้างอิง:</strong> Thrun, S., Burgard, W., &amp; Fox, D. (2005). <em>Probabilistic Robotics</em>. MIT Press. · LaValle, S.M. (2006). <em>Planning Algorithms</em>. Cambridge.</div>
+                    </div>
+                </article>
+            </section>
+
+            <!-- CH9 -->
+            <section class="ch-section" id="ch9">
+                <article class="ch-card">
+                    <div class="ch-head"><span class="ch-badge">บทที่ 9</span><h2 class="ch-title">Collaborative Robots (Cobots)</h2></div>
+                    <div class="ch-images">
+                        <figure>
+                            <img src="https://www.cerathai.com/wp-content/uploads/2021/12/UR5e-1.png" alt="Universal Robots UR5e cobot" loading="lazy" />
+                            <figcaption>Universal Robots UR5e — Cobot ชั้นนำ</figcaption>
+                        </figure>
+                        <figure>
+                            <img src="https://www.kuka.com/-/media/kuka-corporate/images/future-production/mrk/kuka-lbr-iiwa-cobot-human-robot-collaboration.jpg?rev=-1&w=1900&hash=AB7F5967EE5E67D068FECEA8E5AA8AC0" alt="Human robot collaboration shared workspace" loading="lazy" />
+                            <figcaption>มนุษย์และ Cobot ทำงานร่วมกันในพื้นที่เดียว</figcaption>
+                        </figure>
+                        <figure>
+                            <img src="https://html.scirp.org/file/2313002-rId15.jpeg?20250410040724" alt="Force limiting safety ISO 15066 cobot" loading="lazy" />
+                            <figcaption>ระบบ Force Limiting ตาม ISO/TS 15066</figcaption>
+                        </figure>
+                    </div>
+                    <div class="ch-body">
+                        <h4>📌 หุ่นยนต์ร่วมปฏิบัติงาน</h4>
+                        <p>Cobot ถูกออกแบบมาให้ทำงานร่วมกับมนุษย์ในพื้นที่เดียวกัน (Shared Workspace) โดยไม่ต้องมีกรงนิรภัย (Safety Cage) หลักการออกแบบเน้นเรื่องความปลอดภัยเป็นอันดับแรก โดยใช้เซนเซอร์ตรวจจับแรงสัมผัส (Force Sensing) และการจำกัดความเร็ว (ISO/TS 15066)</p>
+                        <ul>
+                            <li><strong>Force Limiting:</strong> Cobot มีเซนเซอร์ตรวจจับแรงกระแทกที่ผิดปกติและหยุดการทำงานภายในไม่กี่มิลลิวินาที เพื่อป้องกันการบาดเจ็บต่อมนุษย์</li>
+                            <li><strong>Human-Robot Interaction (HRI):</strong> ออกแบบส่วนต่อประสาน เช่น Hand-guiding, การสั่งงานด้วยเสียง, การแสดงสถานะผ่านไฟ LED</li>
+                            <li><strong>Applications:</strong> การประกอบชิ้นส่วนอิเล็กทรอนิกส์, การขันสกรู, การพ่นกาว, และการตรวจสอบคุณภาพ (Quality Inspection)</li>
+                        </ul>
+                        <div class="ch-source"><strong>📚 แหล่งที่มาอ้างอิง:</strong> ISO/TS 15066:2016 Robots and robotic devices — Collaborative robots. · Universal Robots Academy.</div>
+                    </div>
+                </article>
+            </section>
+
+            <!-- CH10 -->
+            <section class="ch-section" id="ch10">
+                <article class="ch-card">
+                    <div class="ch-head"><span class="ch-badge">บทที่ 10</span><h2 class="ch-title">Robot Manipulation and Grasping</h2></div>
+                    <div class="ch-images">
+                        <figure>
+                            <img src="https://sc01.alicdn.com/kf/H243265bff8914fc3ae8ef78bda688eebZ.jpg" alt="Parallel gripper robot hand grasping" loading="lazy" />
+                            <figcaption>Parallel Gripper จับวัตถุแบบขนาน</figcaption>
+                        </figure>
+                        <figure>
+                            <img src="https://manipulation.csail.mit.edu/data/grasp_candidate_evaluation.png" alt="Robot grasp planning point cloud 3D" loading="lazy" />
+                            <figcaption>Grasp Planning ด้วย 3D Point Cloud</figcaption>
+                        </figure>
+                        <figure>
+                            <img src="https://fl.lnwfile.com/_/fl/_raw/5m/dl/ic.jpg" alt="Soft gripper silicone adaptive flexible" loading="lazy" />
+                            <figcaption>Soft Gripper ปรับรูปตามวัตถุ</figcaption>
+                        </figure>
+                    </div>
+                    <div class="ch-body">
+                        <h4>📌 การหยิบจับ (Grasping) และการจัดการ (Manipulation)</h4>
+                        <p>การหยิบจับเป็นทักษะพื้นฐานที่สำคัญที่สุดของหุ่นยนต์ เกี่ยวข้องกับการคำนวณหาจุดสัมผัส (Contact Points) ที่เสถียรบนวัตถุเพื่อให้สามารถยกและเคลื่อนย้ายได้โดยไม่หลุดหรือทำให้วัตถุเสียหาย (Murray, Li, &amp; Sastry, 1994)</p>
+                        <ul>
+                            <li><strong>Grasp Taxonomy:</strong> <strong>Parallel Gripper</strong> (นิ้วขนาน), <strong>Vacuum Gripper</strong> (ดูดด้วยลม), <strong>Magnetic Gripper</strong> (แม่เหล็ก), <strong>Soft/Adaptive Gripper</strong> (วัสดุอ่อนนุ่มปรับรูปตามวัตถุ)</li>
+                            <li><strong>Force Closure &amp; Form Closure:</strong> หลักการทางคณิตศาสตร์ประเมินว่าการจับนั้นมั่นคงหรือไม่ Force Closure หมายถึงแรงเสียดทานที่ปลายนิ้วสามารถต้านทานแรงภายนอกได้ทุกทิศทาง</li>
+                            <li><strong>Grasp Planning:</strong> ใช้ข้อมูล 3D Vision (Point Cloud) ตรวจจับรูปร่างและวางแผนท่าทางการจับ</li>
+                            <li><strong>Tactile Sensing:</strong> เซนเซอร์ความดันที่ปลายนิ้วช่วยปรับแรงจับระหว่างการยกเพื่อป้องกันการลื่นไถล (Slip Detection)</li>
+                        </ul>
+                        <div class="ch-source"><strong>📚 แหล่งที่มาอ้างอิง:</strong> Murray, R.M., Li, Z., &amp; Sastry, S.S. (1994). <em>A Mathematical Introduction to Robotic Manipulation</em>. CRC Press. · Bicchi &amp; Kumar (2000). IEEE.</div>
+                    </div>
+                </article>
+            </section>
+
+            <!-- CH11 -->
+            <section class="ch-section" id="ch11">
+                <article class="ch-card">
+                    <div class="ch-head"><span class="ch-badge">บทที่ 11</span><h2 class="ch-title">Drones and Aerial Robotics</h2></div>
+                    <div class="ch-images">
+                        <figure>
+                            <img src="https://www.djibangkok.com/wp-content/uploads/2016/12/medium_baada688-b74f-4bee-9a2d-9ff2e9782b7d.jpg" alt="DJI Phantom 4 Pro UAV drone in flight" loading="lazy" />
+                            <figcaption>โดรน DJI Phantom 4 Pro — Quadcopter UAV</figcaption>
+                        </figure>
+                        <figure>
+                            <img src="https://storage.googleapis.com/fastwork-static/d169f434-cda7-45b0-9c62-504d6f037345.jpg" alt="Aerial drone survey photography landscape" loading="lazy" />
+                            <figcaption>UAV สำรวจและ Photogrammetry ทางอากาศ</figcaption>
+                        </figure>
+                        <figure>
+                            <img src="https://cf.shopee.co.th/file/d7f62c3371993784d189f198e8bb5497" alt="Drone components propeller motor flight controller" loading="lazy" />
+                            <figcaption>Flight Controller, ESC &amp; ส่วนประกอบ UAV</figcaption>
+                        </figure>
+                    </div>
+                    <div class="ch-body">
+                        <h4>📌 อากาศยานไร้คนขับ (UAVs)</h4>
+                        <p>โดรนหรือ Unmanned Aerial Vehicles (UAVs) เป็นหุ่นยนต์ที่บินได้ ประกอบด้วย 4 ประเภทหลัก ได้แก่ <strong>Multirotor</strong> (Quadcopter, Hexacopter) ที่มีความคล่องตัวสูง, <strong>Fixed-wing</strong> ที่บินไกลและนาน, <strong>VTOL</strong> แบบผสม และ <strong>Hybrid</strong> (Beard &amp; McLain, 2012)</p>
+                        <ul>
+                            <li><strong>Flight Controllers:</strong> ระบบบนไมโครคอนโทรลเลอร์ (PX4, ArduPilot) จัดการ IMU, Barometer, GPS และ Magnetometer เพื่อรักษาระดับการบิน</li>
+                            <li><strong>Autopilot &amp; Mission Planning:</strong> วางแผนภารกิจผ่าน Ground Control Station (GCS) เช่น Mission Planner หรือ QGroundControl</li>
+                            <li><strong>Computer Vision on Drones:</strong> Obstacle Avoidance, Target Tracking และ Photogrammetry สร้างแผนที่ 3 มิติ</li>
+                            <li><strong>Regulations (Thailand):</strong> อยู่ภายใต้ CAAT และ กสทช. ต้องลงทะเบียนและมีประกันภัยสำหรับโดรน &gt; 2 กิโลกรัม</li>
+                        </ul>
+                        <div class="ch-source"><strong>📚 แหล่งที่มาอ้างอิง:</strong> Beard, R.W., &amp; McLain, T.W. (2012). <em>Small Unmanned Aircraft</em>. Princeton. · FAA Part 107 Regulations.</div>
+                    </div>
+                </article>
+            </section>
+
+            <!-- CH12 -->
+            <section class="ch-section" id="ch12">
+                <article class="ch-card">
+                    <div class="ch-head"><span class="ch-badge">บทที่ 12</span><h2 class="ch-title">Automation in Manufacturing — Industry 4.0</h2></div>
+                    <div class="ch-images">
+                        <figure>
+                            <img src="https://www.theeleader.com/wp-content/uploads/2017/10/smart-factory-.jpg" alt="Industry 4.0 smart factory IIoT CPS" loading="lazy" />
+                            <figcaption>Smart Factory — โรงงานอัจฉริยะ Industry 4.0</figcaption>
+                        </figure>
+                        <figure>
+                            <img src="https://cdn.prod.website-files.com/609414d10a55da25acaa8353/69329a6c1570153e2b7b98fa_Digital%20Twin%20Technology%20for%20Predictive%20Maintenance-1200.webp" alt="Digital twin predictive maintenance dashboard" loading="lazy" />
+                            <figcaption>Digital Twin &amp; Predictive Maintenance</figcaption>
+                        </figure>
+                        <figure>
+                            <img src="https://cm.lnwfile.com/_/cm/_raw/iu/bx/ot.png" alt="IIoT Industrial Internet of Things connected sensors" loading="lazy" />
+                            <figcaption>IIoT — เชื่อมต่อเซนเซอร์สู่ Cloud</figcaption>
+                        </figure>
+                    </div>
+                    <div class="ch-body">
+                        <h4>📌 Industry 4.0 — การปฏิวัติอุตสาหกรรมครั้งที่ 4</h4>
+                        <p>Industry 4.0 เกิดขึ้นจากการรวมตัวของ Cyber-Physical Systems (CPS), IoT, Cloud Computing, AI และ Big Data เพื่อสร้างระบบการผลิตที่ "ชาญฉลาด" (Smart) โดยเครื่องจักรสามารถสื่อสารกัน (M2M Communication) และปรับเปลี่ยนกระบวนการผลิตแบบอัตโนมัติ (Schwab, 2016)</p>
+                        <ul>
+                            <li><strong>Cyber-Physical Systems (CPS):</strong> การผสานรวมระหว่างโลกเสมือน (Digital) และโลกกายภาพ (Physical) ผ่านระบบ Embedded Systems และเครือข่าย</li>
+                            <li><strong>Digital Twin:</strong> แบบจำลองเสมือน (Virtual Model) ของเครื่องจักรที่อัปเดต Real-time จากเซนเซอร์ เพื่อการจำลอง วิเคราะห์ และ Predictive Maintenance</li>
+                            <li><strong>Predictive Maintenance:</strong> ใช้ Machine Learning วิเคราะห์ข้อมูลการสั่นสะเทือนและอุณหภูมิคาดการณ์ความเสียหาย ช่วยลด Downtime ได้ถึง 30%</li>
+                            <li><strong>Horizontal &amp; Vertical Integration:</strong> เชื่อมต่อข้อมูลจากระดับ Sensor ไปจนถึงระดับ ERP เพื่อการตัดสินใจทางธุรกิจที่รวดเร็ว</li>
+                        </ul>
+                        <div class="ch-source"><strong>📚 แหล่งที่มาอ้างอิง:</strong> Schwab, K. (2016). <em>The Fourth Industrial Revolution</em>. Crown Business. · Kagermann, H. et al. (2013). <em>Recommendations for Industry 4.0</em>. acatech.</div>
+                    </div>
+                </article>
+            </section>
+
+            <!-- CH13 -->
+            <section class="ch-section" id="ch13">
+                <article class="ch-card">
+                    <div class="ch-head"><span class="ch-badge">บทที่ 13</span><h2 class="ch-title">Medical and Service Robots</h2></div>
+                    <div class="ch-images">
+                        <figure>
+                            <img src="https://www.bangkokbanksme.com/api/assets/37027e78-4cc7-46b4-a462-ab4b6ef6e9bf" alt="Da Vinci surgical robot minimally invasive" loading="lazy" />
+                            <figcaption>หุ่นยนต์ผ่าตัด Da Vinci Surgical System</figcaption>
+                        </figure>
+                        <figure>
+                            <img src="https://www.vejthani.com/wp-content/uploads/2021/08/Cmill.jpg" alt="Robot rehabilitation therapy stroke patient" loading="lazy" />
+                            <figcaption>หุ่นยนต์ฟื้นฟูสมรรถภาพผู้ป่วย Stroke</figcaption>
+                        </figure>
+                        <figure>
+                            <img src="https://www.automation.co.th/wp-content/uploads/2025/04/%E0%B8%AB%E0%B8%B8%E0%B9%88%E0%B8%99%E0%B8%A2%E0%B8%99%E0%B8%95%E0%B9%8C%E0%B8%AA%E0%B9%88%E0%B8%87%E0%B8%A2%E0%B8%B2-%E0%B9%83%E0%B8%99%E0%B9%82%E0%B8%A3%E0%B8%87%E0%B8%9E%E0%B8%A2%E0%B8%B2%E0%B8%9A%E0%B8%B2%E0%B8%A5.png" alt="Hospital service robot delivery medication" loading="lazy" />
+                            <figcaption>หุ่นยนต์ส่งยาและเวชภัณฑ์ในโรงพยาบาล</figcaption>
+                        </figure>
+                    </div>
+                    <div class="ch-body">
+                        <h4>📌 หุ่นยนต์ทางการแพทย์</h4>
+                        <p>หุ่นยนต์ทางการแพทย์มีบทบาทสำคัญในศตวรรษที่ 21 โดยแบ่งเป็น 3 กลุ่มหลัก: <strong>Surgical Robots</strong>, <strong>Rehabilitation Robots</strong>, และ <strong>Service Robots</strong> ในโรงพยาบาล</p>
+                        <ul>
+                            <li><strong>Da Vinci Surgical System:</strong> แขนกล 4 แขนควบคุมโดยศัลยแพทย์ผ่านคอนโซล ผ่าตัดแบบ Minimally Invasive ด้วยภาพ 3D ความละเอียดสูง กรองแรงสั่นสะเทือนจากมือมนุษย์</li>
+                            <li><strong>Rehabilitation &amp; Therapy:</strong> หุ่นยนต์เช่น Lokomat หรือ Ekso Bionics ฝึกเดินแบบ Repetitive Task Training สำหรับผู้ป่วย Stroke ช่วยกระตุ้นระบบประสาทส่วนกลาง</li>
+                            <li><strong>Exoskeletons:</strong> โครงสร้างภายนอกที่ผู้ป่วยสวมใส่เพื่อเพิ่มความแข็งแรงหรือช่วยการเคลื่อนไหว ใช้ทั้งทางการแพทย์และอุตสาหกรรม</li>
+                            <li><strong>Hospital Service Robots:</strong> หุ่นยนต์ TUG, Relay ใช้ LIDAR นำทางส่งอาหารและเวชภัณฑ์ภายในโรงพยาบาล ลดภาระบุคลากร</li>
+                        </ul>
+                        <div class="ch-source"><strong>📚 แหล่งที่มาอ้างอิง:</strong> Intuitive Surgical White Papers. · Krebs, H.I., &amp; Volpe, B.T. (2013). "Rehabilitation Robotics". <em>Neurorehabilitation and Neural Repair</em>.</div>
+                    </div>
+                </article>
+            </section>
+
+            <!-- CH14 -->
+            <section class="ch-section" id="ch14">
+                <article class="ch-card">
+                    <div class="ch-head"><span class="ch-badge">บทที่ 14</span><h2 class="ch-title">Robot Simulation and Digital Tools</h2></div>
+                    <div class="ch-images">
+                        <figure>
+                            <img src="https://automaticaddison.com/wp-content/uploads/2024/11/loop-robotic-arm-gripper-mycobot-rviz-gazebo-gz.jpg" alt="Gazebo robot simulator ROS environment" loading="lazy" />
+                            <figcaption>Gazebo Simulator — จำลองหุ่นยนต์ใน ROS</figcaption>
+                        </figure>
+                        <figure>
+                            <img src="https://www.mathworks.com/help/examples/robotics/win64/IKBlockTrajectoryExample_05.png" alt="MATLAB simulation computation robotics toolbox" loading="lazy" />
+                            <figcaption>MATLAB Robotics Toolbox — คำนวณ IK &amp; Trajectory</figcaption>
+                        </figure>
+                        <figure>
+                            <img src="https://manual.coppeliarobotics.com/en/images/pagesAndViews2.jpg" alt="CoppeliaSim V-REP 3D robot simulation" loading="lazy" />
+                            <figcaption>CoppeliaSim (V-REP) สภาพแวดล้อม 3 มิติ</figcaption>
+                        </figure>
+                    </div>
+                    <div class="ch-body">
+                        <h4>📌 การจำลอง (Simulation) ในวิทยาการหุ่นยนต์</h4>
+                        <p>การจำลองเป็นเครื่องมือที่สำคัญมากในการพัฒนาหุ่นยนต์ ช่วยลดต้นทุนและความเสี่ยงในการทดสอบกับฮาร์ดแวร์จริง โดยเฉพาะเมื่อต้องทดสอบอัลกอริทึม AI ที่ต้องใช้การลองผิดลองถูกจำนวนมาก (Sim-to-Real) (Corke, 2017)</p>
+                        <ul>
+                            <li><strong>Gazebo:</strong> มาพร้อม ROS มี Physics Engine ที่สมบูรณ์ (ODE, Bullet) รองรับ LIDAR, กล้อง RGB-D, IMU</li>
+                            <li><strong>Webots:</strong> GUI ที่ใช้งานง่าย รองรับหุ่นยนต์หลากหลายรุ่น (e-puck, NAO) เขียนโปรแกรมผ่าน Python, C++, หรือ Java</li>
+                            <li><strong>CoppeliaSim (V-REP):</strong> สถาปัตยกรรม Distributed ผ่าน API รองรับ Lua, Python, C++, หรือ MATLAB</li>
+                            <li><strong>MATLAB Robotics Toolbox:</strong> คำนวณ Inverse Kinematics, สร้าง Trajectory และออกแบบตัวควบคุม (Controller Design)</li>
+                        </ul>
+                        <div class="ch-source"><strong>📚 แหล่งที่มาอ้างอิง:</strong> Corke, P. (2017). <em>Robotics, Vision and Control</em>. Springer. · MathWorks Documentation.</div>
+                    </div>
+                </article>
+            </section>
+
+            <!-- CH15 -->
+            <section class="ch-section" id="ch15">
+                <article class="ch-card">
+                    <div class="ch-head"><span class="ch-badge">บทที่ 15</span><h2 class="ch-title">Ethics, Safety and Future of Robotics</h2></div>
+                    <div class="ch-images">
+                        <figure>
+                            <img src="https://f.ptcdn.info/206/089/000/mfkur75dow8LZuKDG6P-o.jpg" alt="Humanoid robot future AGI concept" loading="lazy" />
+                            <figcaption>หุ่นยนต์ Humanoid แห่งอนาคต (Tesla Optimus)</figcaption>
+                        </figure>
+                        <figure>
+                            <img src="https://bdi.or.th/wp-content/uploads/2025/07/image_12pco12pco12pco1-1024x847.jpg" alt="AI ethics bias fairness autonomous systems" loading="lazy" />
+                            <figcaption>จริยธรรม AI — Bias, Fairness &amp; Transparency</figcaption>
+                        </figure>
+                        <figure>
+                            <img src="https://www.manutalkthai.com/wp-content/uploads/2025/02/What-is-iso-10218-1024x536.png" alt="Industrial safety standards ISO 10218 robot" loading="lazy" />
+                            <figcaption>มาตรฐานความปลอดภัย ISO 10218</figcaption>
+                        </figure>
+                    </div>
+                    <div class="ch-body">
+                        <h4>📌 จริยธรรมและความปลอดภัย</h4>
+                        <p>การพัฒนาหุ่นยนต์ยุคใหม่ต้องคำนึงถึงผลกระทบทางสังคมและจริยธรรมอย่างจริงจัง Isaac Asimov ได้บัญญัติ "กฎ 3 ข้อ" เอาไว้ตั้งแต่ปี 1942 ซึ่งยังคงเป็นกรอบแนวคิดพื้นฐานในปัจจุบัน มาตรฐาน <strong>ISO 10218</strong> (หุ่นยนต์อุตสาหกรรม) และ <strong>ISO/TS 15066</strong> (Cobot) กำหนดข้อกำหนดด้านความปลอดภัย</p>
+                        <ul>
+                            <li><strong>Bias &amp; Fairness:</strong> อัลกอริทึม AI อาจมีอคติจาก Training Data ที่ไม่สมดุล ส่งผลให้การตัดสินใจไม่เป็นธรรม</li>
+                            <li><strong>Job Displacement:</strong> WEF คาดการณ์ว่าหุ่นยนต์จะทดแทนงาน Routine 85 ล้านตำแหน่ง แต่สร้างงานใหม่ใน Tech และ Creative อีก 97 ล้านตำแหน่ง</li>
+                            <li><strong>Autonomous Weapons:</strong> ประเด็นการใช้หุ่นยนต์สังหารอัตโนมัติ (LAWS) ที่หลายองค์กรเรียกร้องให้ห้ามใช้ (Campaign to Stop Killer Robots)</li>
+                        </ul>
+                        <h4>🔹 อนาคตของหุ่นยนต์</h4>
+                        <ul>
+                            <li><strong>Humanoids &amp; AGI:</strong> Tesla Optimus, Boston Dynamics Atlas กำลังถูกพัฒนาให้ทำงานแทนมนุษย์ในงานทั่วไป (General Purpose)</li>
+                            <li><strong>Soft Robotics:</strong> การใช้ซิลิโคนและ Pneumatic Artificial Muscles ทำให้หุ่นยนต์ปลอดภัยต่อการสัมผัสและปรับตัวตามรูปทรงวัตถุ (Bio-inspired)</li>
+                            <li><strong>Swarm Robotics:</strong> การทำงานประสานกันเป็นฝูง (Ant Colony Optimization) สำหรับภารกิจสำรวจและกู้ภัย</li>
+                        </ul>
+                        <div class="ch-source"><strong>📚 แหล่งที่มาอ้างอิง:</strong> Asimov, I. (1950). <em>I, Robot</em>. · IEEE Global Initiative on Ethics of Autonomous Systems. · WEF (2023). <em>Future of Jobs Report</em>.</div>
+                    </div>
+                </article>
+            </section>
+
+            <!-- CH16 -->
+            <section class="ch-section" id="ch16">
+                <article class="ch-card">
+                    <div class="ch-head"><span class="ch-badge">บทที่ 16</span><h2 class="ch-title">Case Studies and Real-World Applications</h2></div>
+                    <div class="ch-images">
+                        <figure>
+                            <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSpiJ0XJ0gcfTrDNMzRG6eWeJj85DS1KS_DlQ&s" alt="Tesla Gigafactory robot welding car manufacturing" loading="lazy" />
+                            <figcaption>Tesla Gigafactory — หุ่นยนต์เชื่อมโลหะ Spot Welding</figcaption>
+                        </figure>
+                        <figure>
+                            <img src="https://www.roboticsandautomationmagazine.co.uk/wp-content/uploads/2022/07/Screenshot-2022-07-13-at-16.15.56-1.png" alt="Amazon Robotics fulfillment center AMR" loading="lazy" />
+                            <figcaption>Amazon Robotics — คลังสินค้า AMR อัตโนมัติ</figcaption>
+                        </figure>
+                        <figure>
+                            <img src="https://techxcite.com/topics/39246/thumbnail/12003.jpg" alt="Boston Dynamics Spot quadruped remote inspection" loading="lazy" />
+                            <figcaption>Boston Dynamics Spot ตรวจสอบโรงงาน</figcaption>
+                        </figure>
+                    </div>
+                    <div class="ch-body">
+                        <h4>📌 กรณีศึกษาเชิงลึก</h4>
+                        <p>บทนี้รวบรวมตัวอย่างการประยุกต์ใช้หุ่นยนต์ในโลกความเป็นจริงที่ประสบความสำเร็จอย่างสูง เพื่อเป็นแนวทางและแรงบันดาลใจในการนำไปปรับใช้ในองค์กรและอุตสาหกรรมต่างๆ</p>
+                        <ul>
+                            <li><strong>Tesla Gigafactory (Nevada/Berlin):</strong> ใช้หุ่นยนต์ KUKA และ Fanuc มากกว่า 300 ตัวต่อสายการผลิต ครอบคลุม Stamping, Spot Welding, และ Painting เชื่อมต่อกับ Digital Twin เพื่อปรับปรุงกระบวนการแบบ Real-time</li>
+                            <li><strong>Amazon Robotics (Fulfillment Centers):</strong> หุ่นยนต์ Proteus (AMR) เคลื่อนย้ายชั้นวางสินค้า (Pods) และใช้ AI พยากรณ์ความต้องการสินค้า (Demand Forecasting) ด้วย Machine Learning</li>
+                            <li><strong>Boston Dynamics:</strong> หุ่นยนต์ Spot ตรวจสอบจุดอันตราย (Remote Inspection) ในโรงกลั่นน้ำมัน BP และเหมืองแร่ เก็บข้อมูลความร้อนและเสียง ส่วน Atlas แสดงความก้าวหน้าด้าน Dynamical Systems &amp; Control</li>
+                            <li><strong>Thailand EECi:</strong> รัฐบาลไทยจัดตั้งศูนย์นวัตกรรมหุ่นยนต์ (ARiP) ที่ชลบุรี สนับสนุนการเปลี่ยนผ่านสู่ Industry 4.0 โดยบริษัทอย่าง SVI และ Delphi ใช้ Cobot ประกอบชิ้นส่วนอิเล็กทรอนิกส์และยานยนต์</li>
+                        </ul>
+                        <div class="highlight-box"><strong>💡 บทสรุป:</strong> การนำหุ่นยนต์และระบบอัตโนมัติไปใช้ไม่ใช่เพียงการแทนที่แรงงานมนุษย์ แต่เป็นการยกระดับคุณภาพชีวิตและความปลอดภัยในการทำงาน โดยมุ่งเน้นที่ Human-Robot Collaboration และการใช้ประโยชน์จากข้อมูลเพื่อการตัดสินใจที่แม่นยำยิ่งขึ้น</div>
+                        <div class="ch-source"><strong>📚 แหล่งที่มาอ้างอิง:</strong> Case Studies from Boston Dynamics, Amazon Robotics, Tesla Manufacturing, and EECi Thailand. · International Federation of Robotics (IFR) Reports.</div>
+                    </div>
+                </article>
+            </section>
+
+            <footer class="footer">
+                <p>📘 <strong>Robotics and Automation — 16 Chapters (ฉบับอ้างอิงทางวิชาการ)</strong></p>
+                <p style="margin-top:4px;font-size:0.75rem;color:var(--text2);">รูปภาพจาก Wikimedia Commons และ Unsplash — ใช้เพื่อการศึกษา</p>
+                <p style="margin-top:10px;" class="ft-accent">🤖 <em>"Automation is not about replacing people, but empowering them."</em></p>
+                <div class="credit">
+                    <strong>Credit :</strong> Thanasit Kerdprakhon &nbsp;|&nbsp; IT 1S/67 &nbsp;|&nbsp; Student Number 6715100010
+                </div>
+            </footer>
+
+        </div>
+    </main>
+
+    <button id="btt" aria-label="กลับด้านบน">↑</button>
+
+    <script>
+        (function() {
+            'use strict';
+            const loader = document.getElementById('loader');
+            const hideLoader = () => loader.classList.add('hidden');
+            window.addEventListener('load', () => setTimeout(hideLoader, 500));
+            if (document.readyState === 'complete') setTimeout(hideLoader, 400);
+
+            const hamburger = document.getElementById('hamburger');
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            const navLinks = sidebar.querySelectorAll('nav a');
+
+            const openSidebar = () => { sidebar.classList.add('open'); overlay.classList.add('show'); hamburger.classList.add('open'); document.body.style.overflow = 'hidden'; };
+            const closeSidebar = () => { sidebar.classList.remove('open'); overlay.classList.remove('show'); hamburger.classList.remove('open'); document.body.style.overflow = ''; };
+
+            hamburger.addEventListener('click', () => sidebar.classList.contains('open') ? closeSidebar() : openSidebar());
+            overlay.addEventListener('click', closeSidebar);
+            navLinks.forEach(link => {
+                link.addEventListener('click', () => {
+                    navLinks.forEach(l => l.classList.remove('active'));
+                    link.classList.add('active');
+                    if (window.innerWidth <= 900) closeSidebar();
+                });
+            });
+
+            const topbar = document.getElementById('topbar');
+            const btt = document.getElementById('btt');
+            const sections = document.querySelectorAll('.ch-section');
+
+            const updateNav = () => {
+                let current = null;
+                const pos = window.scrollY + 120;
+                sections.forEach(s => { if (pos >= s.offsetTop && pos < s.offsetTop + s.offsetHeight) current = s.id; });
+                navLinks.forEach(link => link.classList.toggle('active', current && link.getAttribute('href') === '#' + current));
+            };
+
+            window.addEventListener('scroll', () => {
+                topbar.classList.toggle('scrolled', window.scrollY > 30);
+                btt.classList.toggle('show', window.scrollY > 500);
+                updateNav();
+            }, { passive: true });
+
+            btt.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+            document.addEventListener('keydown', e => { if (e.key === 'Escape' && sidebar.classList.contains('open')) closeSidebar(); });
+            updateNav();
+
+            document.querySelectorAll('img').forEach(img => {
+                img.addEventListener('error', function() {
+                    if (this.dataset.fallbackSet) return;
+                    this.dataset.fallbackSet = 'true';
+                    this.style.display = 'none';
+                    const wrap = this.closest('figure') || this.parentNode;
+                    const place = document.createElement('div');
+                    place.style.cssText = 'height:180px;background:linear-gradient(135deg,#111a26,#25304a);cursor:default;display:flex;align-items:center;justify-content:center;color:#00e5ff33;font-size:3rem;';
+                    place.innerHTML = '🤖';
+                    if (wrap) wrap.appendChild(place);
+                });
+            });
+
+            console.log('%c🤖 Robotics & Automation %c16 Chapters — Images Updated %cReady',
+                'color:#00e5ff;font-size:1.2rem;font-weight:bold;', 'color:#ffb74d;', 'color:#8e9aaa;');
+        })();
+    </script>
+
+    <!-- Modal ขยายรูป (ปุ่ม X มุมขวาบนของรูป) -->
+    <script>
+        (function() {
+            const modal = document.createElement('div');
+            modal.id = 'image-modal';
+            modal.innerHTML = `
+                <div id="modal-container">
+                    <img id="modal-image" src="" alt="ภาพขยาย">
+                    <button id="modal-close">&times;</button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+
+            const modalImg = document.getElementById('modal-image');
+            const closeBtn = document.getElementById('modal-close');
+
+            function openModal(src) {
+                if (!src) return;
+                modalImg.src = src;
+                modal.classList.add('active');
+                document.body.style.overflow = 'hidden';
+            }
+            function closeModal() {
+                modal.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+
+            closeBtn.addEventListener('click', closeModal);
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) closeModal();
+            });
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && modal.classList.contains('active')) closeModal();
+            });
+
+            document.querySelectorAll('.ch-images img').forEach(img => {
+                if (img.src && !img.src.startsWith('data:')) {
+                    img.style.cursor = 'pointer';
+                    img.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        const src = this.getAttribute('src');
+                        if (src) openModal(src);
+                    });
+                }
+            });
+        })();
+    </script>
+</body>
+</html>
